@@ -14,6 +14,7 @@ class VoteView(discord.ui.View):
         self.guild = guild
         self.votes_a = set()
         self.votes_b = set()
+        self.user_names = {}
 
         button_a = discord.ui.Button(
             label=choice1,
@@ -33,6 +34,8 @@ class VoteView(discord.ui.View):
     async def vote_a_callback(self, interaction: discord.Interaction):
         self.votes_b.discard(interaction.user.id)
         self.votes_a.add(interaction.user.id)
+        self.user_names[interaction.user.id] = interaction.user.display_name
+
         await interaction.response.send_message(
             f"**{self.choice1}**에 투표했어요!",
             ephemeral=True
@@ -41,6 +44,8 @@ class VoteView(discord.ui.View):
     async def vote_b_callback(self, interaction: discord.Interaction):
         self.votes_a.discard(interaction.user.id)
         self.votes_b.add(interaction.user.id)
+        self.user_names[interaction.user.id] = interaction.user.display_name
+
         await interaction.response.send_message(
             f"**{self.choice2}**에 투표했어요!",
             ephemeral=True
@@ -110,12 +115,10 @@ class VoteCog(commands.Cog):
         users_b = []
 
         for user_id in view.votes_a:
-            member = interaction.guild.get_member(user_id)
-            users_a.append(member.display_name if member else "알 수 없음")
+            users_a.append(view.user_names.get(user_id, "알 수 없음"))
 
         for user_id in view.votes_b:
-            member = interaction.guild.get_member(user_id)
-            users_b.append(member.display_name if member else "알 수 없음")
+            users_b.append(view.user_names.get(user_id, "알 수 없음"))
 
         detail_text = (
             f"📊 투표 상세 결과\n\n"
@@ -130,5 +133,4 @@ class VoteCog(commands.Cog):
 
 
 async def setup(bot: commands.Bot):
-    cog = VoteCog(bot)
-    await bot.add_cog(cog, guild=discord.Object(id=GUILD_ID))
+    await bot.add_cog(VoteCog(bot), guild=discord.Object(id=GUILD_ID))
